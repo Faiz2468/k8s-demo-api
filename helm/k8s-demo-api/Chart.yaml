@@ -1,0 +1,6 @@
+apiVersion: v2
+name: k8s-demo-api
+description: Helm chart deploying the k8s-demo-api REST service onto Kubernetes
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

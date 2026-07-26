@@ -1,0 +1,12 @@
+{
+  "name": "k8s-demo-api",
+  "version": "1.0.0",
+  "description": "Minimal REST API used to demonstrate Docker + Kubernetes (kind) + Helm deployment",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

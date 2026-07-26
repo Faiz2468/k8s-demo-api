@@ -1,4 +1,4 @@
-name: Build and Lint
+name: Build, Deploy, and Smoke Test
 
 on:
   pull_request:
@@ -7,9 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-lint:
+  build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -25,3 +24,60 @@ jobs:
 
       - name: Render Helm templates (dry run)
         run: helm template test-release ./helm/k8s-demo-api
+
+      - name: Save image as artifact
+        run: docker save k8s-demo-api:ci -o k8s-demo-api.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: k8s-demo-api.tar
+
+  deploy-and-test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load image into local Docker
+        run: docker load -i k8s-demo-api.tar
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: ci-cluster
+
+      - name: Load image into kind cluster
+        run: kind load docker-image k8s-demo-api:ci --name ci-cluster
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy with Helm
+        run: |
+          helm install ci-demo ./helm/k8s-demo-api \
+            --set image.repository=k8s-demo-api \
+            --set image.tag=ci
+
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/ci-demo-k8s-demo-api --timeout=90s
+
+      - name: Port-forward and smoke test
+        run: |
+          kubectl port-forward svc/ci-demo-k8s-demo-api 3000:3000 &
+          sleep 5
+          curl --fail http://localhost:3000/health
+
+      - name: Show pods on failure
+        if: failure()
+        run: |
+          kubectl get pods
+          kubectl describe pods
+          kubectl logs -l app=ci-demo-k8s-demo-api --all-containers

@@ -1,2 +1,5 @@
 node_modules/
 *.log
+kind.exe
+helm.zip
+windows-amd64/

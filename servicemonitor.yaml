@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: k8s-demo-api
+  namespace: default
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: demo-k8s-demo-api
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s

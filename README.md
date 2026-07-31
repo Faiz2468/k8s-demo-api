@@ -10,10 +10,10 @@ cloud account, no card, no cost.
 ## Why this exists
 
 Container orchestration (Kubernetes, Helm) and observability
-(Prometheus, Grafana) are core requirements for cloud infrastructure
-roles. This repo proves both skills hands-on: building an image,
+(Prometheus, Grafana) are core requirements for cloud infrastructure.
+This repo proves both skills hands-on: building an image,
 running it as multiple replicas on a real cluster, health-checked and
-load-balanced by Kubernetes itself — and instrumented so its request
+load-balanced by Kubernetes itself. Instrumented so its request
 rate, latency, and error rate are actually visible, not just assumed.
 
 ## Stack
@@ -74,7 +74,7 @@ curl http://localhost:30080/health
 curl -X POST http://localhost:30080/notes -H "Content-Type: application/json" -d '{"text":"first note"}'
 curl http://localhost:30080/notes
 curl http://localhost:30080/metrics
-curl http://localhost:30080/error-test   # simulated 500 ~30% of the time
+curl http://localhost:30080/error-test
 
 # 7. Install the monitoring stack
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts

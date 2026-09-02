@@ -16,6 +16,15 @@ jobs:
       - name: Build Docker image
         run: docker build -t k8s-demo-api:ci ./app
 
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: k8s-demo-api:ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
       - name: Set up Helm
         uses: azure/setup-helm@v4
 

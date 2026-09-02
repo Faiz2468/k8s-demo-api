@@ -11,10 +11,10 @@ cloud account, no card, no cost.
 
 Container orchestration (Kubernetes, Helm) and observability
 (Prometheus, Grafana) are core requirements for cloud infrastructure.
-This repo proves both skills hands-on: building an image,
-running it as multiple replicas on a real cluster, health-checked and
-load-balanced by Kubernetes itself. Instrumented so its request
-rate, latency, and error rate are actually visible, not just assumed.
+Building an image, running it as multiple replicas on a real cluster, 
+health-checked and load-balanced by Kubernetes itself. Instrumented 
+so its request rate, latency, and error rate are actually visible, 
+not just assumed.
 
 ## Stack
 
@@ -29,8 +29,10 @@ rate, latency, and error rate are actually visible, not just assumed.
 - **Helm** — templated, versioned Kubernetes deployment
 - **kube-prometheus-stack** — Prometheus, Grafana, and Alertmanager,
   self-hosted via Helm, no external account or SaaS tier
-- **GitHub Actions** — builds the image and lints the Helm chart on
-  every PR
+- **[Trivy](https://github.com/aquasecurity/trivy)** — container
+  vulnerability scanning
+- **GitHub Actions** — builds the image, scans it with Trivy, and
+  lints the Helm chart on every PR
 
 ## Architecture
 
@@ -47,6 +49,29 @@ rate, latency, and error rate are actually visible, not just assumed.
                                       Prometheus (scrapes every 15s)
                                            |
                                         Grafana (dashboards)
+
+## Security scanning
+
+CI runs [Trivy](https://github.com/aquasecurity/trivy) against the
+built Docker image on every push, failing the build on any
+CRITICAL/HIGH vulnerability with a known fix.
+
+The first scan flagged CVEs in two places, both fixed with real
+changes rather than suppression:
+
+- **npm's bundled internals** (`tar`, `minimatch`, `pacote`,
+  `sigstore`) — these come from npm's own CLI tooling, not the app's
+  dependencies. Fixed by switching to a multi-stage Docker build: a
+  `builder` stage installs dependencies with npm, then the final
+  runtime image copies only the built app and strips npm's CLI out
+  entirely, since the container only needs `node` to run, not `npm`.
+- **Base image OS packages** (OpenSSL/`libssl3`) — Alpine's OS-level
+  packages had known CVEs. Fixed with an `apk upgrade` step in the
+  final image, pulling in patched versions before the app is copied
+  in.
+
+Both fixes were verified locally (build, run, `curl /health`) before
+being pushed, so the image stayed functionally identical throughout.
 
 ## Running it locally
 
@@ -118,7 +143,8 @@ re-imported into any Grafana instance rather than rebuilt by hand.
 
 ## What this demonstrates
 
-- Writing a production-shaped Dockerfile (small base image, no dev deps)
+- Writing a production-shaped Dockerfile (small base image, no dev deps,
+  multi-stage build)
 - Kubernetes fundamentals: Deployments, Services, replica counts,
   readiness/liveness probes
 - Helm chart authoring: templated manifests, `values.yaml` for config
@@ -130,4 +156,7 @@ re-imported into any Grafana instance rather than rebuilt by hand.
   not just the default cluster/node dashboards
 - Simulating realistic failure conditions (`/error-test`) so error-rate
   monitoring reflects real data instead of an empty graph
-- CI that builds the image and lints the chart on every PR
+- Automated container vulnerability scanning (Trivy) integrated into
+  CI, with real fixes for both dependency-level and OS-level CVEs
+- CI that builds the image, scans it for vulnerabilities, and lints
+  the chart on every PR

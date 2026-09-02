@@ -11,6 +11,10 @@ FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
+# Pull in patched OS packages (e.g. openssl/libssl3) to close known CVEs
+# in the base image before anything else runs.
+RUN apk update && apk upgrade --no-cache
+
 COPY --from=builder /usr/src/app ./
 
 # Remove npm's CLI and its bundled internals (tar, minimatch, pacote, sigstore)
